@@ -14,6 +14,8 @@ Requirements
 - credentials for a user that has sufficient privileges to retrieve workflows from Jira
 - a repo you can access for committing changes to
 
+I've only tested this against Server/DC, no idea if it would have any use with Cloud.
+
 Usage
 -----
 
