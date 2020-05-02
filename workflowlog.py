@@ -3,6 +3,7 @@ import sys # for sys.exit only?
 import argparse # for taking arguments
 import httpx # to make http requests to JIRA and Slack
 import json # for working with responses from Jira, etc.
+import untangle # to pull out specific data from the workflow xmls
 import parsedatetime # for parsing relative and human readable time descriptions
 from git import Repo,Git # for git operations
 from shutil import rmtree # for deleting work dir
@@ -30,13 +31,18 @@ def setupWorkdir():
 
 def commitChanges(repo):
     repo.git.add(".")
+    changedFiles = repo.git.diff("HEAD", name_only=True).splitlines()
+    commitMessage = "Updated Workflow Count: "+str(len(changedFiles))+"\n\n"
+    for f in changedFiles:
+        o = untangle.parse("./work/"+f)
+        commitMessage += '"'+f[:-4]+'"'+" by "+o.workflow.meta[1].cdata+"\n"
     if (args.firstrun):
         repo.index.commit("initial commit")
         origin = repo.create_remote('origin',os.getenv("gitremote"))
         repo.create_head('master')
         origin.push('master',env={"GIT_SSH_COMMAND":git_ssh_command})
     elif (len(repo.index.diff("HEAD"))>0): # there exists changes
-        repo.index.commit(str(datetime.now()))
+        repo.index.commit(commitMessage)
         origin = repo.remote('origin')
         origin.push()
 
