@@ -25,23 +25,25 @@ def setupWorkdir():
     if (args.firstrun):
         os.makedirs("work")
         repo = Repo.init("./work",env={"GIT_SSH_COMMAND":git_ssh_command})
+        repo.git.checkout('-b',os.getenv("gitbranch"))
     else:
-        repo = Repo.clone_from(os.getenv("gitremote"),"./work",depth=1,env={"GIT_SSH_COMMAND":git_ssh_command})
+        repo = Repo.clone_from(os.getenv("gitremote"),"./work",env={"GIT_SSH_COMMAND":git_ssh_command})
+        repo.git.checkout(os.getenv("gitbranch"))
     return repo
 
 def commitChanges(repo):
     repo.git.add(".")
-    changedFiles = repo.git.diff("HEAD", name_only=True).splitlines()
-    commitMessage = "Updated Workflow Count: "+str(len(changedFiles))+"\n\n"
-    for f in changedFiles:
-        o = untangle.parse("./work/"+f)
-        commitMessage += '"'+f[:-4]+'"'+" by "+o.workflow.meta[1].cdata+"\n"
     if (args.firstrun):
         repo.index.commit("initial commit")
         origin = repo.create_remote('origin',os.getenv("gitremote"))
-        repo.create_head('master')
-        origin.push('master',env={"GIT_SSH_COMMAND":git_ssh_command})
+        repo.create_head(os.getenv("gitbranch"))
+        origin.push(os.getenv("gitbranch"),env={"GIT_SSH_COMMAND":git_ssh_command})
     elif (len(repo.index.diff("HEAD"))>0): # there exists changes
+        changedFiles = repo.git.diff("HEAD", name_only=True).splitlines()
+        commitMessage = "Updated Workflow Count: "+str(len(changedFiles))+"\n\n"
+        for f in changedFiles:
+            o = untangle.parse("./work/"+f)
+            commitMessage += '"'+f[:-4]+'"'+" by "+o.workflow.meta[1].cdata+"\n"
         repo.index.commit(commitMessage)
         origin = repo.remote('origin')
         origin.push()
